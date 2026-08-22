@@ -1,9 +1,10 @@
-# 架空マップメーカー PWA v14
+# 架空マップメーカー PWA v18
 
-GitHub Pages にそのまま置ける正式版です。
+GitHub Pages 更新用の正式版です。
 
-## GitHubへアップロードするファイル
-このフォルダ内の次の6ファイルを、リポジトリの一番上（root）へ置いてください。
+## アップロードするファイル
+
+ZIPを展開し、リポジトリの一番上（root）へ次の6ファイルをアップロードしてください。
 
 - index.html
 - manifest.webmanifest
@@ -12,23 +13,22 @@ GitHub Pages にそのまま置ける正式版です。
 - icon-512.png
 - README.md
 
-地図のJSONファイルや「架空マップメーカー_保存データ」フォルダはGitHubへアップロードしないでください。
+保存した地図JSONや「架空マップメーカー_保存データ」フォルダはGitHubへアップロードしないでください。
 
-## GitHub Pages
+## GitHub Pages設定
+
 Settings → Pages → Build and deployment
+
 - Source: Deploy from a branch
 - Branch: main
 - Folder: /(root)
 
-公開URLの例:
-https://あなたのユーザー名.github.io/fictional-map-maker/
+既にこの設定が済んでいる場合、更新時に設定し直す必要はありません。
 
 ## 保存データ
-作成した地図はGitHubには送信せず、端末内へ保存します。
-外部保存先を設定すると、選択した親フォルダ内に
-「架空マップメーカー_保存データ」
-が作成されます。
 
-## 更新
-今後の更新は同名ファイルを新しい版へ置き換えて main にコミットします。
-Service Worker のキャッシュ名も版ごとに変更します。
+作成した地図はGitHubへ送信せず、各端末のPWA内部領域と、ユーザーが許可した
+「架空マップメーカー_保存データ」
+に保存します。
+
+v14正式版と同じ保存フォルダ名・IndexedDB名を使用し、v18はv14のlocalStorageデータも読み込めるようにしています。
