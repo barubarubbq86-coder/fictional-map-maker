@@ -1,19 +1,34 @@
-# 架空マップメーカー PWA
+# 架空マップメーカー PWA v14
 
-## インストール前提
-PWAとしてAndroid Chromeへインストールするには、このフォルダを HTTPS で配信してください。file:// で直接開いた場合はPWAインストールとService Workerは動作しません。
+GitHub Pages にそのまま置ける正式版です。
 
-## 初回の保存先設定
-1. PWAを起動
-2. 「保存先を選ぶ」
-3. Androidのファイル選択画面で「ダウンロード」または「ドキュメント」などの親フォルダを選択
-4. その中に「架空マップメーカー_保存データ」が自動作成されます
+## GitHubへアップロードするファイル
+このフォルダ内の次の6ファイルを、リポジトリの一番上（root）へ置いてください。
 
-専用フォルダ構成:
-- 架空マップメーカー_保存データ/
-  - このフォルダについて.txt
-  - 自動保存_最新.json
-  - 地図データ/
-    - （名前を付けて保存した各マップ）.json
+- index.html
+- manifest.webmanifest
+- sw.js
+- icon-192.png
+- icon-512.png
+- README.md
 
-アプリ内部にも自動保存され、専用フォルダが設定済みなら二重保存されます。
+地図のJSONファイルや「架空マップメーカー_保存データ」フォルダはGitHubへアップロードしないでください。
+
+## GitHub Pages
+Settings → Pages → Build and deployment
+- Source: Deploy from a branch
+- Branch: main
+- Folder: /(root)
+
+公開URLの例:
+https://あなたのユーザー名.github.io/fictional-map-maker/
+
+## 保存データ
+作成した地図はGitHubには送信せず、端末内へ保存します。
+外部保存先を設定すると、選択した親フォルダ内に
+「架空マップメーカー_保存データ」
+が作成されます。
+
+## 更新
+今後の更新は同名ファイルを新しい版へ置き換えて main にコミットします。
+Service Worker のキャッシュ名も版ごとに変更します。
