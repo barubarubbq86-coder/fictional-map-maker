@@ -1,10 +1,10 @@
-# 架空マップメーカー PWA v18
+# 架空マップメーカー PWA v22
 
-GitHub Pages 更新用の正式版です。
+既存の本番リポジトリ `fictional-map-maker` へ上書き更新するための正式版です。
 
-## アップロードするファイル
+## 更新方法
 
-ZIPを展開し、リポジトリの一番上（root）へ次の6ファイルをアップロードしてください。
+ZIPを展開し、リポジトリの root に次の6ファイルをアップロードして上書きしてください。
 
 - index.html
 - manifest.webmanifest
@@ -13,22 +13,29 @@ ZIPを展開し、リポジトリの一番上（root）へ次の6ファイルを
 - icon-512.png
 - README.md
 
-保存した地図JSONや「架空マップメーカー_保存データ」フォルダはGitHubへアップロードしないでください。
+ZIPそのものはアップロードしません。
 
-## GitHub Pages設定
+## GitHub Pages
 
-Settings → Pages → Build and deployment
-
+既に GitHub Pages が
 - Source: Deploy from a branch
 - Branch: main
 - Folder: /(root)
 
-既にこの設定が済んでいる場合、更新時に設定し直す必要はありません。
+で公開されているなら、設定変更は不要です。
 
 ## 保存データ
 
-作成した地図はGitHubへ送信せず、各端末のPWA内部領域と、ユーザーが許可した
-「架空マップメーカー_保存データ」
-に保存します。
+本番版と同じ保存領域を使います。
 
-v14正式版と同じ保存フォルダ名・IndexedDB名を使用し、v18はv14のlocalStorageデータも読み込めるようにしています。
+- visible folder: `架空マップメーカー_保存データ`
+- IndexedDB: `fictional-map-maker-pwa`
+- current map key: `fictional-map-maker-current-name`
+
+v18 / v14 の production localStorage からの移行も残しています。
+
+## 安全性
+
+ユーザーの地図・フレーム・名前を外部へ送信する処理はありません。
+ページ本体は `connect-src 'none'`。
+Service Worker は同じ GitHub Pages オリジンのアプリ本体だけをキャッシュします。
