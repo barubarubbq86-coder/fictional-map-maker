@@ -1,4 +1,4 @@
-const CACHE='fictional-map-maker-pwa-v22';
+const CACHE='fictional-map-maker-pwa-v24';
 const ASSETS=['./','./index.html','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 
 self.addEventListener('install',event=>{
