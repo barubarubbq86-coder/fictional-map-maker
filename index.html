@@ -140,7 +140,7 @@ button{touch-action:manipulation}
 <body>
 <div class="app" id="app">
  <header class="topbar">
-  <div class="brand"><div class="logo">M</div><div class="brandText"><b>架空マップメーカー</b><span>PWA・v24</span></div></div>
+  <div class="brand"><div class="logo">M</div><div class="brandText"><b>架空マップメーカー</b><span>PWA・v25</span></div></div>
   <div class="topStatus" id="status">選択ツール：空白を1本指でドラッグすると移動、2本指ならいつでも移動＋ズーム</div>
   <div class="topActions">
    <button class="iconBtn" id="undoBtn" type="button" aria-label="元に戻す">↶</button>
@@ -259,7 +259,7 @@ const CONTINENT_JA={Africa:'アフリカ',Asia:'アジア',Europe:'ヨーロッ�
 const $=s=>document.querySelector(s), $$=s=>Array.from(document.querySelectorAll(s));
 const svg=$('#map'), viewport=$('#viewport'), statusEl=$('#status'), guide=$('#guidePill'), inspector=$('#inspector'), globeCanvas=$('#globeCanvas');
 const groups={onionSkin:$('#onionSkin'),references:$('#references'),continents:$('#continents'),terrain:$('#terrain'),biomes:$('#biomes'),borders:$('#borders'),rivers:$('#rivers'),roads:$('#roads'),railways:$('#railways'),features:$('#features'),labels:$('#labels'),wrapCopies:$('#wrapCopies'),guideGrid:$('#guideGrid'),topLabels:$('#topLabels'),selection:$('#selection'),draft:$('#draft')};
-let mode='select', selectedId=null, pointEdit=false, draftPoints=[], drawSession=null, borderPreview=null, borderSnapSession=null, landMergeIds=[], finalMode=false, wrapInfo=null, globeMode=false, globeLongitude=0, globeDrag=null, globeRenderQueued=false;
+let mode='select', selectedId=null, pointEdit=false, draftPoints=[], drawSession=null, borderPreview=null, borderSnapSession=null, landMergeIds=[], finalMode=false, wrapInfo=null, globeMode=false, globeLongitude=0, globeLatitude=0, globeDrag=null, globeRenderQueued=false;
 let history=[],future=[], pointerMap=new Map(), gesture=null, panDrag=null, objectDrag=null, nodeDrag=null, touchMoved=false;
 const MAX_MAP_ZOOM=160;
 let view={x:0,y:0,scale:1};
@@ -282,7 +282,7 @@ function emptyMapState(){return{references:[],continents:[],terrain:[],biomes:[]
 function deepClone(v){return JSON.parse(JSON.stringify(v))}
 function ensureFrames(){if(!frames.length)frames=[{id:uid(),name:'フレーム 1',state:cloneState()}];currentFrame=Math.max(0,Math.min(frames.length-1,currentFrame))}
 function syncCurrentFrame(){ensureFrames();frames[currentFrame].state=cloneState()}
-function projectPayload(){syncCurrentFrame();return{app:'fictional-map-maker-flipbook-pwa',version:24,state:cloneState(),frames:frames.map((f,i)=>({id:f.id||uid(),name:cleanName(f.name||`フレーム ${i+1}`,`フレーム ${i+1}`),state:deepClone(f.state)})),currentFrame,animation:{fps:animationFps,onion:onionSkinOn}}}
+function projectPayload(){syncCurrentFrame();return{app:'fictional-map-maker-flipbook-pwa',version:25,state:cloneState(),frames:frames.map((f,i)=>({id:f.id||uid(),name:cleanName(f.name||`フレーム ${i+1}`,`フレーム ${i+1}`),state:deepClone(f.state)})),currentFrame,animation:{fps:animationFps,onion:onionSkinOn}}}
 function applyProjectData(j){
  if(j&&Array.isArray(j.frames)&&j.frames.length){frames=j.frames.slice(0,120).map((f,i)=>({id:cleanId(f?.id),name:cleanName(f?.name||`フレーム ${i+1}`,`フレーム ${i+1}`),state:sanitizeState(f?.state||{})}));currentFrame=Math.max(0,Math.min(frames.length-1,Math.floor(Number(j.currentFrame)||0)));animationFps=Math.max(1,Math.min(12,Math.round(Number(j.animation?.fps)||4)));onionSkinOn=j.animation?.onion!==false;state=deepClone(frames[currentFrame].state);return}
  state=sanitizeState(j?.state||j||{});frames=[{id:uid(),name:'フレーム 1',state:cloneState()}];currentFrame=0;animationFps=4;onionSkinOn=true
@@ -293,7 +293,7 @@ function switchFrame(i){if(animationPlaying)stopFramePlayback(false);syncCurrent
 function duplicateCurrentFrame(){if(frames.length>=120){alert('フレームは最大120枚です。');return}syncCurrentFrame();const copy={id:uid(),name:`フレーム ${currentFrame+2}`,state:cloneState()};frames.splice(currentFrame+1,0,copy);currentFrame++;state=deepClone(copy.state);history=[];future=[];selectedId=null;renderAll();autosave();renderFrameDock(true);setStatus('現在の地図を編集可能なまま次フレームへ複製しました。')}
 function addBlankFrame(){if(frames.length>=120){alert('フレームは最大120枚です。');return}syncCurrentFrame();const f={id:uid(),name:`フレーム ${currentFrame+2}`,state:emptyMapState()};frames.splice(currentFrame+1,0,f);currentFrame++;state=deepClone(f.state);history=[];future=[];selectedId=null;renderAll();autosave();renderFrameDock(true);setStarterView();setStatus('空のフレームを追加しました。')}
 function deleteCurrentFrame(){if(frames.length===1){if(!confirm('唯一のフレームを空にしますか？'))return;state=emptyMapState();frames[0].state=cloneState();renderAll();autosave();setStarterView();return}if(!confirm(`フレーム ${currentFrame+1} を削除しますか？`))return;frames.splice(currentFrame,1);currentFrame=Math.min(currentFrame,frames.length-1);state=deepClone(frames[currentFrame].state);history=[];future=[];selectedId=null;renderAll();autosave();renderFrameDock(true)}
-function persistProjectMeta(){try{localStorage.setItem('fictional-map-maker-v24',JSON.stringify(projectPayload()))}catch(e){}schedulePersistentAutosave()}
+function persistProjectMeta(){try{localStorage.setItem('fictional-map-maker-v25',JSON.stringify(projectPayload()))}catch(e){}schedulePersistentAutosave()}
 function stopFramePlayback(save=true){if(playTimer)clearInterval(playTimer);playTimer=null;animationPlaying=false;$('#app').classList.remove('frame-playing');if(save)persistProjectMeta();renderAll();renderFrameDock()}
 function toggleFramePlayback(){if(animationPlaying){stopFramePlayback();return}syncCurrentFrame();if(frames.length<2){setStatus('再生には2フレーム以上必要です。');return}animationPlaying=true;selectedId=null;pointEdit=false;$('#app').classList.add('frame-playing');renderFrameDock();const tick=()=>{currentFrame=(currentFrame+1)%frames.length;state=deepClone(frames[currentFrame].state);renderAll();renderFrameDock()};tick();playTimer=setInterval(tick,1000/animationFps)}
 function renderOnionSkin(){if(!onionSkinOn||animationPlaying||frames.length<2){groups.onionSkin.innerHTML='';return}let html='';const ghost=(st,stroke,fill,opacity)=>!st?'':(st.continents||[]).map(c=>`<path d="${smoothClosed(c.points)}" fill="${fill}" fill-opacity="${opacity*.45}" stroke="${stroke}" stroke-width="2" stroke-dasharray="7 5" opacity="${opacity}" vector-effect="non-scaling-stroke"/>`).join('');if(currentFrame>0)html+=ghost(frames[currentFrame-1].state,'#c05a67','#d98791',.34);if(currentFrame<frames.length-1)html+=ghost(frames[currentFrame+1].state,'#3d8a73','#81bea9',.27);groups.onionSkin.innerHTML=html}
@@ -303,8 +303,8 @@ function commit(){pushHistory(cloneState())}
 function undo(){if(!history.length)return;future.push(cloneState());state=history.pop();selectedId=null;pointEdit=false;renderAll();autosave()}
 function redo(){if(!future.length)return;history.push(cloneState());state=future.pop();selectedId=null;pointEdit=false;renderAll();autosave()}
 function updateUndoRedo(){$('#undoBtn').disabled=!history.length;$('#redoBtn').disabled=!future.length}
-function autosave(){syncCurrentFrame();try{localStorage.setItem('fictional-map-maker-v24',JSON.stringify(projectPayload()))}catch(e){}renderFrameDock();schedulePersistentAutosave()}
-function loadAutosave(){try{const raw=localStorage.getItem('fictional-map-maker-v24')||localStorage.getItem('fictional-map-maker-v23')||localStorage.getItem('fictional-map-maker-v22')||localStorage.getItem('fictional-map-maker-v18')||localStorage.getItem('fictional-map-maker-v14')||localStorage.getItem('fictional-map-maker-v8')||localStorage.getItem('fictional-map-maker-v7')||localStorage.getItem('fictional-map-maker-v6')||localStorage.getItem('fictional-map-maker-v5')||localStorage.getItem('fictional-map-maker-v4');if(raw)applyProjectData(JSON.parse(raw));else applyProjectData({})}catch(e){applyProjectData({})}}
+function autosave(){syncCurrentFrame();try{localStorage.setItem('fictional-map-maker-v25',JSON.stringify(projectPayload()))}catch(e){}renderFrameDock();schedulePersistentAutosave()}
+function loadAutosave(){try{const raw=localStorage.getItem('fictional-map-maker-v25')||localStorage.getItem('fictional-map-maker-v24')||localStorage.getItem('fictional-map-maker-v23')||localStorage.getItem('fictional-map-maker-v22')||localStorage.getItem('fictional-map-maker-v18')||localStorage.getItem('fictional-map-maker-v14')||localStorage.getItem('fictional-map-maker-v8')||localStorage.getItem('fictional-map-maker-v7')||localStorage.getItem('fictional-map-maker-v6')||localStorage.getItem('fictional-map-maker-v5')||localStorage.getItem('fictional-map-maker-v4');if(raw)applyProjectData(JSON.parse(raw));else applyProjectData({})}catch(e){applyProjectData({})}}
 function sanitizePoint(p){if(!p||typeof p!=='object')return null;const x=Number(p.x),y=Number(p.y);if(!Number.isFinite(x)||!Number.isFinite(y))return null;return{x:Math.max(-10000000,Math.min(10000000,x)),y:Math.max(-10000000,Math.min(10000000,y))}}
 function sanitizePoints(a,max=1000){if(!Array.isArray(a))return[];return a.slice(0,max).map(sanitizePoint).filter(Boolean)}
 function sanitizePolys(a,maxPolys=400){if(!Array.isArray(a))return[];return a.slice(0,maxPolys).map(p=>sanitizePoints(p,1600)).filter(p=>p.length>=3)}
@@ -650,12 +650,35 @@ function globeDrawPolygon(ctx,pts,b,w,h,fill,alpha=1){
 function globeDrawLine(ctx,pts,b,w,h,stroke,width=1,dash=[]){
  if(!pts?.length)return;ctx.beginPath();pts.forEach((p,i)=>{const q=globeMapPoint(p,b,w,h);i?ctx.lineTo(q.x,q.y):ctx.moveTo(q.x,q.y)});ctx.strokeStyle=stroke;ctx.lineWidth=width;ctx.setLineDash(dash);ctx.lineCap='round';ctx.lineJoin='round';ctx.stroke();ctx.setLineDash([])
 }
+function globeReliefValue(type,value){
+ if(type==='mountain'){const elev=Math.max(0,Math.min(100000,Number(value)||0));return Math.min(1,Math.sqrt(elev/100000))}
+ if(type==='trench'){const dep=Math.max(0,Math.min(11000,Number(value)||0));return -Math.min(.55,Math.sqrt(dep/11000)*.55)}
+ return 0
+}
 function buildGlobeTexture(){
- const tw=900,th=450,c=document.createElement('canvas');c.width=tw;c.height=th;const ctx=c.getContext('2d',{alpha:false}),b=globeWorldBounds();
+ const tw=900,th=450,c=document.createElement('canvas');c.width=tw;c.height=th;
+ const hc=document.createElement('canvas');hc.width=tw;hc.height=th;
+ const ctx=c.getContext('2d',{alpha:false}),hctx=hc.getContext('2d'),b=globeWorldBounds();
  ctx.fillStyle='#b9def1';ctx.fillRect(0,0,tw,th);
+ hctx.fillStyle='rgb(128,128,128)';hctx.fillRect(0,0,tw,th);
+
  for(const r of state.references||[])if(r.polygons)for(const p of r.polygons)globeDrawPolygon(ctx,p,b,tw,th,'#f2f0eb',1);
  for(const c0 of state.continents||[])globeDrawPolygon(ctx,c0.points,b,tw,th,'#f5f3ef',1);
- for(const bio of state.biomes||[]){const v=bio.type==='trench'?bio.depth:bio.elevation,s=biomeStyle(bio.type,v);globeDrawPolygon(ctx,bio.points,b,tw,th,s.fill,bio.type==='mountain'||bio.type==='trench'?.9:.78)}
+
+ for(const bio of state.biomes||[]){
+  const v=bio.type==='trench'?bio.depth:bio.elevation,s=biomeStyle(bio.type,v);
+  globeDrawPolygon(ctx,bio.points,b,tw,th,s.fill,bio.type==='mountain'||bio.type==='trench'?.9:.78);
+  const relief=globeReliefValue(bio.type,v);
+  if(relief!==0){
+   hctx.beginPath();
+   bio.points.forEach((p,i)=>{const q=globeMapPoint(p,b,tw,th);i?hctx.lineTo(q.x,q.y):hctx.moveTo(q.x,q.y)});
+   hctx.closePath();
+   const enc=Math.max(0,Math.min(255,Math.round(128+relief*120)));
+   hctx.fillStyle=`rgb(${enc},${enc},${enc})`;
+   hctx.fill();
+  }
+ }
+
  for(const r of state.rivers||[]){const v=riverVisual(r.style);globeDrawLine(ctx,r.points,b,tw,th,'#5da9d6',Math.max(1,v.width*.65))}
  for(const r of state.roads||[]){const v=roadVisual(r.style);globeDrawLine(ctx,r.points,b,tw,th,v.outer,Math.max(1.2,v.width*.55));globeDrawLine(ctx,r.points,b,tw,th,v.inner,Math.max(.8,v.width*.3))}
  for(const r of state.railways||[])globeDrawLine(ctx,r.points,b,tw,th,'#6d7277',1.15,[4,3]);
@@ -672,38 +695,59 @@ function buildGlobeTexture(){
  for(const f of state.features||[]){const p=globeMapPoint(f,b,tw,th),v=featureVisual(f.type);ctx.fillText(v.glyph,p.x,p.y)}
  ctx.font='700 13px system-ui,sans-serif';ctx.fillStyle='#303438';ctx.strokeStyle='rgba(255,255,255,.94)';ctx.lineWidth=3;
  for(const f of state.features||[])if(capitalTypes.has(f.type)){const p=globeMapPoint(f,b,tw,th);ctx.strokeText(f.name,p.x,p.y+15);ctx.fillText(f.name,p.x,p.y+15)}
- return c
+
+ return{color:c,height:hc}
 }
 function renderGlobe(){
  if(!globeMode||!finalMode)return;
  const rect=globeCanvas.getBoundingClientRect(),dpr=Math.min(2,window.devicePixelRatio||1),cw=Math.max(1,Math.round(rect.width*dpr)),ch=Math.max(1,Math.round(rect.height*dpr));
  if(globeCanvas.width!==cw||globeCanvas.height!==ch){globeCanvas.width=cw;globeCanvas.height=ch}
- const ctx=globeCanvas.getContext('2d',{alpha:false}),tex=buildGlobeTexture(),diam=Math.max(140,Math.min(cw,ch)*.78),r=diam/2,cx=cw/2,cy=ch/2-10*dpr;
+ const ctx=globeCanvas.getContext('2d',{alpha:false}),tex=buildGlobeTexture(),diam=Math.max(140,Math.min(cw,ch)*.78),baseR=diam/2,cx=cw/2,cy=ch/2-10*dpr;
  ctx.clearRect(0,0,cw,ch);ctx.fillStyle=getComputedStyle(document.documentElement).getPropertyValue('--bg')||'#eef1f3';ctx.fillRect(0,0,cw,ch);
- const src=tex.getContext('2d').getImageData(0,0,tex.width,tex.height),dst=ctx.createImageData(cw,ch),sd=src.data,dd=dst.data,tw=tex.width,th=tex.height,lon0=globeLongitude;
- for(let y=Math.max(0,Math.floor(cy-r));y<Math.min(ch,Math.ceil(cy+r));y++){
-  const ny=(y+.5-cy)/r;if(Math.abs(ny)>1)continue;const phi=Math.asin(ny),cosPhi=Math.cos(phi),yy=Math.max(0,Math.min(th-1,Math.floor((.5-phi/Math.PI)*th)));
-  const hx=r*cosPhi,x0=Math.max(0,Math.floor(cx-hx)),x1=Math.min(cw,Math.ceil(cx+hx));
-  for(let x=x0;x<x1;x++){
-   const nx=(x+.5-cx)/r,z2=1-nx*nx-ny*ny;if(z2<0)continue;
-   const lambda=Math.atan2(nx,Math.sqrt(z2))+lon0;
-   let u=lambda/(Math.PI*2)+.5;u=u-Math.floor(u);const xx=Math.max(0,Math.min(tw-1,Math.floor(u*tw))),si=(yy*tw+xx)*4,di=(y*cw+x)*4;
-   const shade=.82+.18*Math.max(0,Math.sqrt(z2));dd[di]=Math.min(255,sd[si]*shade);dd[di+1]=Math.min(255,sd[si+1]*shade);dd[di+2]=Math.min(255,sd[si+2]*shade);dd[di+3]=255;
+
+ const cctx=tex.color.getContext('2d'),hctx=tex.height.getContext('2d');
+ const src=cctx.getImageData(0,0,tex.color.width,tex.color.height),hsrc=hctx.getImageData(0,0,tex.height.width,tex.height.height);
+ const dst=ctx.createImageData(cw,ch),sd=src.data,hd=hsrc.data,dd=dst.data,tw=tex.color.width,th=tex.color.height;
+ const lon0=globeLongitude,lat0=globeLatitude,cl=Math.cos(lat0),sl=Math.sin(lat0),maxReliefPx=baseR*.055;
+
+ for(let y=Math.max(0,Math.floor(cy-baseR*1.07));y<Math.min(ch,Math.ceil(cy+baseR*1.07));y++){
+  for(let x=Math.max(0,Math.floor(cx-baseR*1.07));x<Math.min(cw,Math.ceil(cx+baseR*1.07));x++){
+   const sx=(x+.5-cx)/baseR,sy=(y+.5-cy)/baseR,rr=sx*sx+sy*sy;if(rr>1.12)continue;
+
+   const sx0=Math.max(-.9999,Math.min(.9999,sx)),sy0=Math.max(-.9999,Math.min(.9999,sy));
+   const z0=Math.sqrt(Math.max(0,1-Math.min(1,sx0*sx0+sy0*sy0)));
+   const wy0=sy0*cl+z0*sl,wz0=-sy0*sl+z0*cl;
+   const phi0=Math.asin(Math.max(-1,Math.min(1,wy0))),lambda0=Math.atan2(sx0,wz0)+lon0;
+   let u0=lambda0/(Math.PI*2)+.5;u0=u0-Math.floor(u0);
+   const v0=.5-phi0/Math.PI,tx0=Math.max(0,Math.min(tw-1,Math.floor(u0*tw))),ty0=Math.max(0,Math.min(th-1,Math.floor(v0*th))),hi0=(ty0*tw+tx0)*4;
+   const relief=(hd[hi0]-128)/120,localR=baseR+relief*maxReliefPx;
+
+   const nx=(x+.5-cx)/localR,ny=(y+.5-cy)/localR,z2=1-nx*nx-ny*ny;if(z2<0)continue;
+   const z=Math.sqrt(z2),wy=ny*cl+z*sl,wz=-ny*sl+z*cl;
+   const phi=Math.asin(Math.max(-1,Math.min(1,wy))),lambda=Math.atan2(nx,wz)+lon0;
+   let u=lambda/(Math.PI*2)+.5;u=u-Math.floor(u);const v=.5-phi/Math.PI;
+   const xx=Math.max(0,Math.min(tw-1,Math.floor(u*tw))),yy=Math.max(0,Math.min(th-1,Math.floor(v*th))),si=(yy*tw+xx)*4,di=(y*cw+x)*4;
+
+   const xm=Math.max(0,xx-1),xp=Math.min(tw-1,xx+1),ym=Math.max(0,yy-1),yp=Math.min(th-1,yy+1);
+   const hx=(hd[(yy*tw+xp)*4]-hd[(yy*tw+xm)*4])/255,hy=(hd[(yp*tw+xx)*4]-hd[(ym*tw+xx)*4])/255;
+   const reliefShade=Math.max(-.18,Math.min(.18,-hx*.8-hy*.58)),sphereShade=.80+.20*Math.max(0,z);
+   const shade=Math.max(.56,Math.min(1.20,sphereShade+reliefShade+Math.max(0,relief)*.06));
+
+   dd[di]=Math.min(255,sd[si]*shade);dd[di+1]=Math.min(255,sd[si+1]*shade);dd[di+2]=Math.min(255,sd[si+2]*shade);dd[di+3]=255;
   }
  }
  ctx.putImageData(dst,0,0);
 
- // Graticule + sphere edge + highlight
- ctx.save();ctx.translate(cx,cy);ctx.strokeStyle='rgba(70,100,125,.22)';ctx.lineWidth=Math.max(1,dpr);
- for(const lat of [-60,-30,0,30,60]){const yy=-Math.sin(lat*Math.PI/180)*r,rx=Math.cos(lat*Math.PI/180)*r;ctx.beginPath();ctx.ellipse(0,yy,rx,rx*.13,0,0,Math.PI*2);ctx.stroke()}
- for(const deg of [-60,-30,0,30,60]){const a=deg*Math.PI/180;ctx.beginPath();for(let t=-Math.PI/2;t<=Math.PI/2+.02;t+=.035){const x=Math.sin(a)*Math.cos(t)*r,y=-Math.sin(t)*r,z=Math.cos(a)*Math.cos(t);if(z<0)continue;if(t===-Math.PI/2)ctx.moveTo(x,y);else ctx.lineTo(x,y)}ctx.stroke()}
- ctx.beginPath();ctx.arc(0,0,r,0,Math.PI*2);ctx.strokeStyle='rgba(28,55,75,.55)';ctx.lineWidth=2.2*dpr;ctx.stroke();
- const g=ctx.createRadialGradient(-r*.35,-r*.38,r*.05,-r*.18,-r*.18,r*1.15);g.addColorStop(0,'rgba(255,255,255,.18)');g.addColorStop(.58,'rgba(255,255,255,0)');g.addColorStop(1,'rgba(0,30,55,.26)');ctx.fillStyle=g;ctx.beginPath();ctx.arc(0,0,r,0,Math.PI*2);ctx.fill();ctx.restore()
+ ctx.save();ctx.translate(cx,cy);ctx.strokeStyle='rgba(70,100,125,.20)';ctx.lineWidth=Math.max(1,dpr);
+ for(const lat of [-60,-30,0,30,60]){const yy=-Math.sin(lat*Math.PI/180)*baseR,rx=Math.cos(lat*Math.PI/180)*baseR;ctx.beginPath();ctx.ellipse(0,yy,rx,rx*.13,0,0,Math.PI*2);ctx.stroke()}
+ for(const deg of [-60,-30,0,30,60]){const a=deg*Math.PI/180;ctx.beginPath();let moved=false;for(let t=-Math.PI/2;t<=Math.PI/2+.02;t+=.035){const gx=Math.sin(a)*Math.cos(t)*baseR,gy=-Math.sin(t)*baseR,gz=Math.cos(a)*Math.cos(t);if(gz<0)continue;if(!moved){ctx.moveTo(gx,gy);moved=true}else ctx.lineTo(gx,gy)}ctx.stroke()}
+ ctx.beginPath();ctx.arc(0,0,baseR,0,Math.PI*2);ctx.strokeStyle='rgba(28,55,75,.55)';ctx.lineWidth=2.2*dpr;ctx.stroke();
+ const g=ctx.createRadialGradient(-baseR*.35,-baseR*.38,baseR*.05,-baseR*.18,-baseR*.18,baseR*1.15);g.addColorStop(0,'rgba(255,255,255,.18)');g.addColorStop(.58,'rgba(255,255,255,0)');g.addColorStop(1,'rgba(0,30,55,.26)');ctx.fillStyle=g;ctx.beginPath();ctx.arc(0,0,baseR,0,Math.PI*2);ctx.fill();ctx.restore()
 }
 function scheduleGlobeRender(){if(!globeMode||!finalMode||globeRenderQueued)return;globeRenderQueued=true;requestAnimationFrame(()=>{globeRenderQueued=false;renderGlobe()})}
 function setGlobeMode(on){
  globeMode=!!on&&finalMode;$('#app').classList.toggle('globe-mode',globeMode);$('#globeModeBtn').classList.toggle('on',globeMode);$('#globeModeBtn').textContent=globeMode?'🗺️':'🌐';
- if(globeMode){scheduleGlobeRender();setStatus('地球儀風表示：左右にドラッグすると回転します。下の▶でパラパラ漫画も再生できます。')}
+ if(globeMode){scheduleGlobeRender();setStatus('地球儀風表示：左右で経度、上下で緯度方向に回転します。山の標高・海溝の深さも起伏に反映します。下の▶で再生できます。')}
  else{setStatus(finalMode?'完成表示：下の▶でパラパラ漫画を再生できます。東西方向がループします。':'編集表示')}
 }
 
@@ -869,7 +913,7 @@ const DB_NAME='fictional-map-maker-pwa';
 const DB_STORE='settings';
 let parentDirHandle=null, appDirHandle=null, mapsDirHandle=null, persistentSaveTimer=null, storageInitDone=false;
 let currentMapName=localStorage.getItem('fictional-map-maker-current-name')||'マイマップ';
-function makeSnapshot(){const p=projectPayload();return{...p,app:'fictional-map-maker-flipbook-pwa',version:24,savedAt:new Date().toISOString(),mapName:currentMapName}}
+function makeSnapshot(){const p=projectPayload();return{...p,app:'fictional-map-maker-flipbook-pwa',version:25,savedAt:new Date().toISOString(),mapName:currentMapName}}
 function safeFileName(name){return cleanName(name,'マイマップ').replace(/[\\/:*?\"<>|]/g,'_').replace(/\s+/g,' ').trim().slice(0,60)||'マイマップ'}
 function idbOpen(){return new Promise((res,rej)=>{const r=indexedDB.open(DB_NAME,1);r.onupgradeneeded=()=>r.result.createObjectStore(DB_STORE);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
 async function idbGet(k){const db=await idbOpen();return new Promise((res,rej)=>{const tx=db.transaction(DB_STORE,'readonly'),r=tx.objectStore(DB_STORE).get(k);r.onsuccess=()=>{db.close();res(r.result)};r.onerror=()=>{db.close();rej(r.error)}})}
@@ -896,7 +940,7 @@ async function loadJsonText(raw){try{const j=JSON.parse(String(raw));commit();ap
 async function loadBestPersistentSnapshot(){let best=null;try{const d=await getInternalDir(false);const j=d?await readJsonFromDir(d,'自動保存_最新.json'):null;if(j?.savedAt)best=j}catch(e){}try{if(appDirHandle){const j=await readJsonFromDir(appDirHandle,'自動保存_最新.json');if(j?.savedAt&&(!best||String(j.savedAt)>String(best.savedAt)))best=j}}catch(e){}if(best?.state||best?.frames){applyProjectData(best);currentMapName=cleanName(best.mapName||currentMapName);localStorage.setItem('fictional-map-maker-current-name',currentMapName);return true}return false}
 async function initPersistentStorage(){try{navigator.storage?.persist?.();const h=await idbGet('parentDir');if(h){parentDirHandle=h;const p=await h.queryPermission?.({mode:'readwrite'});if(p==='granted')await attachParentDirectory(h)}await loadBestPersistentSnapshot();renderAll();if(hasMapContent())fitAll();else setStarterView();storageInitDone=true;updateStorageInlineStatus();if(!parentDirHandle&&!localStorage.getItem('fictional-map-maker-storage-dismissed'))setTimeout(openStorageSetup,350)}catch(e){storageInitDone=true;updateStorageInlineStatus()}}
 function updateStorageInlineStatus(){const el=$('#storageInlineStatus');if(!el)return;if(appDirHandle)el.innerHTML=`<span class="storageGood">✓ 専用フォルダに接続済み</span><br>${APP_FOLDER_NAME}<br><span class="hint">内部自動保存＋専用フォルダへ二重保存</span>`;else if(parentDirHandle)el.innerHTML=`<span class="storageWarn">保存フォルダの再許可が必要です</span><br>${APP_FOLDER_NAME}`;else el.innerHTML=`<span class="storageWarn">内部自動保存のみ</span><br>「保存先」から専用フォルダを設定できます。`}
-async function wipeAllAppData(){if(!confirm('このアプリの地図データを削除しますか？'))return;const includeFolder=confirm(`専用フォルダ「${APP_FOLDER_NAME}」も端末から削除しますか？\n\nOK＝専用フォルダも削除\nキャンセル＝アプリ内部データだけ削除`);try{if(includeFolder&&parentDirHandle){const p=await parentDirHandle.queryPermission?.({mode:'readwrite'});if(p==='granted'&&parentDirHandle.name!==APP_FOLDER_NAME)await parentDirHandle.removeEntry(APP_FOLDER_NAME,{recursive:true});else if(p==='granted'&&appDirHandle){for await(const [n] of appDirHandle.entries())await appDirHandle.removeEntry(n,{recursive:true})}}try{const root=await navigator.storage.getDirectory();await root.removeEntry(INTERNAL_FOLDER_NAME,{recursive:true})}catch(e){}for(const k of ['fictional-map-maker-v24','fictional-map-maker-v23','fictional-map-maker-v22','fictional-map-maker-v18','fictional-map-maker-v14','fictional-map-maker-v8','fictional-map-maker-v7','fictional-map-maker-v6','fictional-map-maker-v5','fictional-map-maker-v4','fictional-map-maker-current-name','fictional-map-maker-storage-dismissed'])localStorage.removeItem(k);await idbClear();parentDirHandle=appDirHandle=mapsDirHandle=null;currentMapName='マイマップ';state=emptyMapState();frames=[{id:uid(),name:'フレーム 1',state:cloneState()}];currentFrame=0;history=[];future=[];selectedId=null;renderAll();setStarterView();updateStorageInlineStatus();setStatus(includeFolder?'アプリデータと専用フォルダを削除しました。':'アプリ内部データを削除しました。専用フォルダは残しています。')}catch(e){alert('一部のデータを削除できませんでした。保存フォルダはファイルアプリから手動で削除できます。')}}
+async function wipeAllAppData(){if(!confirm('このアプリの地図データを削除しますか？'))return;const includeFolder=confirm(`専用フォルダ「${APP_FOLDER_NAME}」も端末から削除しますか？\n\nOK＝専用フォルダも削除\nキャンセル＝アプリ内部データだけ削除`);try{if(includeFolder&&parentDirHandle){const p=await parentDirHandle.queryPermission?.({mode:'readwrite'});if(p==='granted'&&parentDirHandle.name!==APP_FOLDER_NAME)await parentDirHandle.removeEntry(APP_FOLDER_NAME,{recursive:true});else if(p==='granted'&&appDirHandle){for await(const [n] of appDirHandle.entries())await appDirHandle.removeEntry(n,{recursive:true})}}try{const root=await navigator.storage.getDirectory();await root.removeEntry(INTERNAL_FOLDER_NAME,{recursive:true})}catch(e){}for(const k of ['fictional-map-maker-v25','fictional-map-maker-v24','fictional-map-maker-v23','fictional-map-maker-v22','fictional-map-maker-v18','fictional-map-maker-v14','fictional-map-maker-v8','fictional-map-maker-v7','fictional-map-maker-v6','fictional-map-maker-v5','fictional-map-maker-v4','fictional-map-maker-current-name','fictional-map-maker-storage-dismissed'])localStorage.removeItem(k);await idbClear();parentDirHandle=appDirHandle=mapsDirHandle=null;currentMapName='マイマップ';state=emptyMapState();frames=[{id:uid(),name:'フレーム 1',state:cloneState()}];currentFrame=0;history=[];future=[];selectedId=null;renderAll();setStarterView();updateStorageInlineStatus();setStatus(includeFolder?'アプリデータと専用フォルダを削除しました。':'アプリ内部データを削除しました。専用フォルダは残しています。')}catch(e){alert('一部のデータを削除できませんでした。保存フォルダはファイルアプリから手動で削除できます。')}}
 
 function downloadJsonBackup(){const data=JSON.stringify(makeSnapshot(),null,2);downloadBlob(new Blob([data],{type:'application/json'}),'架空マップメーカー_バックアップ.json');setStatus('JSONバックアップを書き出しました。')}
 function loadJson(file){if(!file)return;if(file.size>20_000_000){alert('安全のため20MBを超えるJSONは読み込めません。');return}const r=new FileReader();r.onload=()=>loadJsonText(String(r.result));r.readAsText(file,'utf-8')}
@@ -914,8 +958,8 @@ function performImport(){if($('#clearBeforeImport').checked){commit();state={ref
 $$('.tool').forEach(b=>b.addEventListener('click',e=>{const m=b.dataset.mode;if(m!==mode){selectedId=null;pointEdit=false;closeInspector()}setMode(m);if(m==='biome'||m==='feature'||m==='border'||m==='landop')toggleQuickPicker(b,m);else closeQuickPicker()}));document.addEventListener('pointerdown',e=>{if(!quickPicker.classList.contains('open'))return;if(quickPicker.contains(e.target)||e.target.closest?.('.tool[data-mode="biome"],.tool[data-mode="feature"],.tool[data-mode="border"],.tool[data-mode="landop"]'))return;closeQuickPicker()},{capture:true});
 window.addEventListener('resize',()=>{if(quickPicker.classList.contains('open'))closeQuickPicker()});
 $('#globeModeBtn').addEventListener('click',()=>setGlobeMode(!globeMode));
-globeCanvas.addEventListener('pointerdown',e=>{if(!globeMode)return;globeDrag={id:e.pointerId,x:e.clientX,lon:globeLongitude};globeCanvas.setPointerCapture?.(e.pointerId);globeCanvas.classList.add('dragging')});
-globeCanvas.addEventListener('pointermove',e=>{if(!globeDrag||globeDrag.id!==e.pointerId)return;const w=Math.max(180,globeCanvas.getBoundingClientRect().width);globeLongitude=globeDrag.lon-(e.clientX-globeDrag.x)/w*Math.PI*2;scheduleGlobeRender()});
+globeCanvas.addEventListener('pointerdown',e=>{if(!globeMode)return;globeDrag={id:e.pointerId,x:e.clientX,y:e.clientY,lon:globeLongitude,lat:globeLatitude};globeCanvas.setPointerCapture?.(e.pointerId);globeCanvas.classList.add('dragging')});
+globeCanvas.addEventListener('pointermove',e=>{if(!globeDrag||globeDrag.id!==e.pointerId)return;const r=globeCanvas.getBoundingClientRect(),w=Math.max(180,r.width),h=Math.max(180,r.height);globeLongitude=globeDrag.lon-(e.clientX-globeDrag.x)/w*Math.PI*2;globeLatitude=Math.max(-Math.PI*.49,Math.min(Math.PI*.49,globeDrag.lat+(e.clientY-globeDrag.y)/h*Math.PI));scheduleGlobeRender()});
 function endGlobeDrag(e){if(globeDrag?.id!==e.pointerId)return;globeDrag=null;globeCanvas.classList.remove('dragging')}
 globeCanvas.addEventListener('pointerup',endGlobeDrag);globeCanvas.addEventListener('pointercancel',endGlobeDrag);
 window.addEventListener('resize',()=>scheduleGlobeRender());
